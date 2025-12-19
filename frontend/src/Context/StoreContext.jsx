@@ -25,37 +25,58 @@ const StoreContextProvider = (props) => {
     }
 
     const removeFromCart = async (itemId) => {
-        setCartItems((prev) => ({ ...prev, [itemId]: prev[itemId] - 1 }))
-        if (token) {
-            await axios.post(url + "/api/cart/remove", { itemId }, { headers: { token } });
+    setCartItems((prev) => {
+        if (!prev[itemId]) return prev;
+
+        const updated = { ...prev };
+        updated[itemId] -= 1;
+
+        if (updated[itemId] === 0) {
+            delete updated[itemId];
+        }
+
+        return updated;
+    });
+
+    if (token) {
+        await axios.post(
+            url + "/api/cart/remove",
+            { itemId },
+            { headers: { token } }
+        );
+    }
+};
+
+    const getTotalCartAmount = () => {
+    let totalAmount = 0;
+
+    for (const itemId in cartItems) {
+        const itemInfo = food_list.find(
+            (product) => product._id === itemId
+        );
+
+        if (itemInfo) {
+            totalAmount += itemInfo.price * cartItems[itemId];
         }
     }
 
-    const getTotalCartAmount = () => {
-        let totalAmount = 0;
-        for (const item in cartItems) {
-            try {
-              if (cartItems[item] > 0) {
-                let itemInfo = food_list.find((product) => product._id === item);
-                totalAmount += itemInfo.price * cartItems[item];
-            }  
-            } catch (error) {
-                
-            }
-            
-        }
-        return totalAmount;
-    }
+    return totalAmount;
+};
+
 
     const fetchFoodList = async () => {
         const response = await axios.get(url + "/api/food/list");
         setFoodList(response.data.data)
     }
 
-    const loadCartData = async (token) => {
-        const response = await axios.post(url + "/api/cart/get", {}, { headers: token });
-        setCartItems(response.data.cartData);
-    }
+   const loadCartData = async (token) => {
+    const response = await axios.post(
+        url + "/api/cart/get",
+        {},
+        { headers: { token } }
+    );
+    setCartItems(response.data.cartData || {});
+};
 
     useEffect(() => {
         async function loadData() {
